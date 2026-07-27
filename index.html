@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Analytics Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>📊 Analytics Dashboard</h1>
+            <div class="header-controls">
+                <button id="theme-toggle" class="btn btn-outline" title="Toggle Theme">
+                    🌙
+                </button>
+                <button id="refresh-data" class="btn btn-primary" title="Refresh Data">
+                    🔄 Refresh
+                </button>
+                <button id="export-chart" class="btn btn-secondary" title="Export Dashboard">
+                    📥 Export
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <section class="kpi-section">
+            <div class="kpi-card" id="kpi-revenue">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-info">
+                    <h3>Total Revenue</h3>
+                    <p class="kpi-value" id="revenue-value">$124,592</p>
+                    <span class="kpi-change positive">+12.5% ↗</span>
+                </div>
+            </div>
+            <div class="kpi-card" id="kpi-users">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-info">
+                    <h3>Active Users</h3>
+                    <p class="kpi-value" id="users-value">8,432</p>
+                    <span class="kpi-change positive">+5.2% ↗</span>
+                </div>
+            </div>
+            <div class="kpi-card" id="kpi-orders">
+                <div class="kpi-icon">🛒</div>
+                <div class="kpi-info">
+                    <h3>Orders</h3>
+                    <p class="kpi-value" id="orders-value">1,847</p>
+                    <span class="kpi-change negative">-2.1% ↘</span>
+                </div>
+            </div>
+            <div class="kpi-card" id="kpi-conversion">
+                <div class="kpi-icon">🎯</div>
+                <div class="kpi-info">
+                    <h3>Conversion Rate</h3>
+                    <p class="kpi-value" id="conversion-value">3.24%</p>
+                    <span class="kpi-change positive">+0.8% ↗</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="charts-grid">
+            <!-- Revenue Line Chart (Full Width) -->
+            <div class="chart-card chart-large">
+                <div class="chart-header">
+                    <h2>📈 Revenue Overview</h2>
+                    <div class="chart-controls">
+                        <select id="revenue-period">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="365">Last Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Sales by Category (Doughnut) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>🍩 Sales by Category</h2>
+                </div>
+                <div class="chart-body">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Traffic Sources (Bar) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>🌐 Traffic Sources</h2>
+                </div>
+                <div class="chart-body">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+            <!-- User Growth (Area) -->
+            <div class="chart-card chart-large">
+                <div class="chart-header">
+                    <h2>👤 User Growth</h2>
+                    <div class="chart-controls">
+                        <button class="chart-filter active" data-type="all">All</button>
+                        <button class="chart-filter" data-type="new">New</button>
+                        <button class="chart-filter" data-type="returning">Returning</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Performance Radar -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>🎯 Performance Metrics</h2>
+                </div>
+                <div class="chart-body">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Comparison (Stacked Bar) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>📊 Monthly Comparison</h2>
+                </div>
+                <div class="chart-body">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Table -->
+        <section class="table-section">
+            <div class="table-card">
+                <div class="chart-header">
+                    <h2>📋 Recent Transactions</h2>
+                    <div class="chart-controls">
+                        <input type="text" id="table-search" placeholder="Search transactions..." class="search-input">
+                        <select id="table-rows">
+                            <option value="5">5 rows</option>
+                            <option value="10" selected>10 rows</option>
+                            <option value="20">20 rows</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <table id="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span id="showing-info">Showing 1-10 of 50</span>
+                    <div class="pagination">
+                        <button class="page-btn" id="prev-page" disabled>← Prev</button>
+                        <span class="page-numbers" id="page-numbers">
+                            <button class="page-num active">1</button>
+                            <button class="page-num">2</button>
+                            <button class="page-num">3</button>
+                            <button class="page-num">4</button>
+                            <button class="page-num">5</button>
+                        </span>
+                        <button class="page-btn" id="next-page">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="dashboard-footer">
+            <p>Interactive Analytics Dashboard Pecadro &copy; 2026 | Built with Chart.js</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
