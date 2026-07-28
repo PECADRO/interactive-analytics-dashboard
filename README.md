@@ -35,3 +35,11 @@ This project is a good fit for small businesses, operations teams, sales teams, 
 ## License
 
 No license has been specified for this project.
+
+
+
+<img width="710" height="836" alt="image" src="https://github.com/user-attachments/assets/b42382bc-f827-42f0-8c23-1066020bcc76" />
+<img width="717" height="833" alt="image" src="https://github.com/user-attachments/assets/29afb2ec-7b6a-4bab-8b08-d75b11c542c5" />
+<img width="946" height="798" alt="image" src="https://github.com/user-attachments/assets/eff9d479-ae33-43e6-a77d-f568d898c942" />
+
+
