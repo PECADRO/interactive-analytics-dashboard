@@ -325,6 +325,80 @@ body {
 /* ============================================
    Data Table
    ============================================ */
+.transaction-section {
+    margin-bottom: 24px;
+}
+
+.transaction-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.transaction-header {
+    align-items: flex-start;
+}
+
+.section-description {
+    margin-top: 6px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.transaction-form {
+    padding: 20px 24px 24px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.form-field span {
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.form-field input,
+.form-field select {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+.form-field input:focus,
+.form-field select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.15);
+}
+
+.transaction-form-actions {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.transaction-form-actions .btn {
+    min-width: 180px;
+    justify-content: center;
+}
+
 .table-section {
     margin-bottom: 24px;
 }
@@ -374,6 +448,11 @@ body {
     color: var(--text-primary);
 }
 
+#transactions-table th:last-child,
+#transactions-table td:last-child {
+    text-align: right;
+}
+
 #transactions-table tbody tr {
     transition: var(--transition);
 }
@@ -410,6 +489,41 @@ body {
 .status-processing {
     color: var(--accent-primary);
     background: rgba(76, 110, 245, 0.12);
+}
+
+.table-actions {
+    display: inline-flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.table-action-btn {
+    padding: 7px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.table-action-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.table-action-btn.danger:hover {
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
+}
+
+.no-data-row td {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 24px 20px;
 }
 
 /* Search Input */
@@ -545,6 +659,10 @@ body {
     .kpi-section {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -585,6 +703,22 @@ body {
     .chart-large .chart-body {
         height: 300px;
     }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .transaction-form {
+        padding: 18px;
+    }
+
+    .transaction-form-actions {
+        justify-content: stretch;
+    }
+
+    .transaction-form-actions .btn {
+        width: 100%;
+    }
     
     .table-footer {
         flex-direction: column;
@@ -598,6 +732,15 @@ body {
     
     .search-input:focus {
         width: 100%;
+    }
+
+    #transactions-table th,
+    #transactions-table td {
+        padding: 12px 14px;
+    }
+
+    .table-actions {
+        justify-content: flex-start;
     }
 }
 

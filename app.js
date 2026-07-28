@@ -11,10 +11,14 @@ const Dashboard = {
     currentTheme: 'light',
     currentPage: 1,
     itemsPerPage: 10,
+    searchQuery: '',
+    editingTransactionId: null,
     transactions: [],
     revenueData: null,
     userGrowthData: null
 };
+
+const STORAGE_KEY = 'interactive-analytics-dashboard-transactions-v1';
 
 // Color palettes for charts
 const Colors = {
@@ -66,6 +70,193 @@ function formatCurrency(value) {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
     }).format(value);
+}
+
+function normalizeTransaction(transaction) {
+    return {
+        id: String(transaction.id || ''),
+        customer: String(transaction.customer || '').trim(),
+        product: String(transaction.product || '').trim(),
+        amount: Number(transaction.amount) || 0,
+        status: String(transaction.status || 'Completed'),
+        date: String(transaction.date || new Date().toISOString().split('T')[0])
+    };
+}
+
+function getTransactionNumber(id) {
+    const match = String(id).match(/TRX-(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+}
+
+function sortTransactions(transactions) {
+    return [...transactions].sort((a, b) => {
+        const dateDiff = new Date(b.date) - new Date(a.date);
+        if (dateDiff !== 0) {
+            return dateDiff;
+        }
+        return getTransactionNumber(b.id) - getTransactionNumber(a.id);
+    });
+}
+
+function getNextTransactionId(transactions) {
+    const maxId = transactions.reduce((max, transaction) => {
+        return Math.max(max, getTransactionNumber(transaction.id));
+    }, 0);
+
+    return `TRX-${String(maxId + 1).padStart(5, '0')}`;
+}
+
+function loadTransactions() {
+    try {
+        const storedValue = localStorage.getItem(STORAGE_KEY);
+        if (!storedValue) {
+            const seededTransactions = sortTransactions(generateTransactions(50));
+            saveTransactions(seededTransactions);
+            return seededTransactions;
+        }
+
+        const parsedValue = JSON.parse(storedValue);
+        if (!Array.isArray(parsedValue)) {
+            const seededTransactions = sortTransactions(generateTransactions(50));
+            saveTransactions(seededTransactions);
+            return seededTransactions;
+        }
+
+        return sortTransactions(parsedValue.map(normalizeTransaction));
+    } catch (error) {
+        console.warn('Falling back to demo transactions:', error);
+        const seededTransactions = sortTransactions(generateTransactions(50));
+        saveTransactions(seededTransactions);
+        return seededTransactions;
+    }
+}
+
+function saveTransactions(transactions) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sortTransactions(transactions.map(normalizeTransaction))));
+}
+
+function getFilteredTransactions() {
+    const query = Dashboard.searchQuery.trim().toLowerCase();
+
+    if (!query) {
+        return Dashboard.transactions;
+    }
+
+    return Dashboard.transactions.filter((transaction) => {
+        return [transaction.id, transaction.customer, transaction.product, transaction.status, transaction.date, transaction.amount]
+            .join(' ')
+            .toLowerCase()
+            .includes(query);
+    });
+}
+
+function updateDashboardSummary() {
+    const revenue = Dashboard.transactions.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
+    const uniqueCustomers = new Set(Dashboard.transactions.map((transaction) => transaction.customer)).size;
+    const completedOrders = Dashboard.transactions.filter((transaction) => transaction.status.toLowerCase() === 'completed').length;
+    const totalOrders = Dashboard.transactions.length;
+    const conversionRate = totalOrders === 0 ? 0 : (completedOrders / totalOrders) * 100;
+
+    document.getElementById('revenue-value').textContent = formatCurrency(revenue);
+    document.getElementById('users-value').textContent = uniqueCustomers.toLocaleString();
+    document.getElementById('orders-value').textContent = totalOrders.toLocaleString();
+    document.getElementById('conversion-value').textContent = `${conversionRate.toFixed(2)}%`;
+}
+
+function getRevenueSeries(days) {
+    const labels = generateDates(days);
+    const totalsByDate = new Map(labels.map((label) => [label, 0]));
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (days - 1));
+
+    Dashboard.transactions.forEach((transaction) => {
+        const transactionDate = new Date(transaction.date);
+        if (transactionDate >= startDate && transactionDate <= today && totalsByDate.has(transaction.date)) {
+            totalsByDate.set(transaction.date, totalsByDate.get(transaction.date) + Number(transaction.amount || 0));
+        }
+    });
+
+    return {
+        labels,
+        data: labels.map((label) => totalsByDate.get(label) || 0)
+    };
+}
+
+function populateTransactionForm(transaction) {
+    document.getElementById('transaction-id').value = transaction ? transaction.id : '';
+    document.getElementById('transaction-customer').value = transaction ? transaction.customer : '';
+    document.getElementById('transaction-product').value = transaction ? transaction.product : '';
+    document.getElementById('transaction-amount').value = transaction ? transaction.amount : '';
+    document.getElementById('transaction-status').value = transaction ? transaction.status : 'Completed';
+    document.getElementById('transaction-date').value = transaction ? transaction.date : new Date().toISOString().split('T')[0];
+    document.getElementById('transaction-submit').textContent = transaction ? 'Update Transaction' : 'Add Transaction';
+    document.getElementById('transaction-cancel').style.display = transaction ? 'inline-flex' : 'none';
+    Dashboard.editingTransactionId = transaction ? transaction.id : null;
+}
+
+function clearTransactionForm() {
+    document.getElementById('transaction-form').reset();
+    document.getElementById('transaction-id').value = '';
+    document.getElementById('transaction-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('transaction-status').value = 'Completed';
+    document.getElementById('transaction-submit').textContent = 'Add Transaction';
+    document.getElementById('transaction-cancel').style.display = 'none';
+    Dashboard.editingTransactionId = null;
+}
+
+function refreshTransactionsView() {
+    saveTransactions(Dashboard.transactions);
+    updateDashboardSummary();
+    updateRevenueChart(parseInt(document.getElementById('revenue-period').value, 10));
+    renderTable();
+}
+
+function addOrUpdateTransaction(transaction) {
+    const normalizedTransaction = normalizeTransaction(transaction);
+
+    if (Dashboard.editingTransactionId) {
+        Dashboard.transactions = Dashboard.transactions.map((existingTransaction) => {
+            return existingTransaction.id === Dashboard.editingTransactionId
+                ? { ...existingTransaction, ...normalizedTransaction, id: Dashboard.editingTransactionId }
+                : existingTransaction;
+        });
+        showNotification('Transaction updated successfully!', 'success');
+    } else {
+        Dashboard.transactions = [
+            ...Dashboard.transactions,
+            {
+                ...normalizedTransaction,
+                id: getNextTransactionId(Dashboard.transactions)
+            }
+        ];
+        showNotification('Transaction added successfully!', 'success');
+    }
+
+    Dashboard.transactions = sortTransactions(Dashboard.transactions);
+    clearTransactionForm();
+    refreshTransactionsView();
+}
+
+function deleteTransaction(transactionId) {
+    const transaction = Dashboard.transactions.find((item) => item.id === transactionId);
+    if (!transaction) {
+        return;
+    }
+
+    const confirmed = window.confirm(`Delete ${transaction.customer}'s transaction for ${transaction.product}?`);
+    if (!confirmed) {
+        return;
+    }
+
+    Dashboard.transactions = Dashboard.transactions.filter((item) => item.id !== transactionId);
+
+    if (Dashboard.editingTransactionId === transactionId) {
+        clearTransactionForm();
+    }
+
+    showNotification('Transaction deleted.', 'success');
+    refreshTransactionsView();
 }
 
 function generateTransactions(count = 50) {
@@ -438,11 +629,18 @@ function initComparisonChart() {
 // ============================================
 function renderTable() {
     const tbody = document.getElementById('transactions-body');
+    const filteredTransactions = getFilteredTransactions();
+    const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / Dashboard.itemsPerPage));
+
+    if (Dashboard.currentPage > totalPages) {
+        Dashboard.currentPage = totalPages;
+    }
+
     const start = (Dashboard.currentPage - 1) * Dashboard.itemsPerPage;
     const end = start + Dashboard.itemsPerPage;
-    const pageData = Dashboard.transactions.slice(start, end);
-    
-    tbody.innerHTML = pageData.map(trx => `
+    const pageData = filteredTransactions.slice(start, end);
+
+    tbody.innerHTML = pageData.length > 0 ? pageData.map((trx) => `
         <tr>
             <td><strong>${trx.id}</strong></td>
             <td>${trx.customer}</td>
@@ -450,15 +648,25 @@ function renderTable() {
             <td>${formatCurrency(trx.amount)}</td>
             <td><span class="status-badge status-${trx.status.toLowerCase()}">${trx.status}</span></td>
             <td>${trx.date}</td>
+            <td>
+                <div class="table-actions">
+                    <button class="table-action-btn" data-action="edit" data-id="${trx.id}">Edit</button>
+                    <button class="table-action-btn danger" data-action="delete" data-id="${trx.id}">Delete</button>
+                </div>
+            </td>
         </tr>
-    `).join('');
-    
-    const totalPages = Math.ceil(Dashboard.transactions.length / Dashboard.itemsPerPage);
-    document.getElementById('showing-info').textContent = 
-        `Showing ${start + 1}-${Math.min(end, Dashboard.transactions.length)} of ${Dashboard.transactions.length}`;
-    
+    `).join('') : `
+        <tr class="no-data-row">
+            <td colspan="7">No transactions match your search. Add a new one to get started.</td>
+        </tr>
+    `;
+
+    document.getElementById('showing-info').textContent = filteredTransactions.length === 0
+        ? 'Showing 0 of 0'
+        : `Showing ${start + 1}-${Math.min(end, filteredTransactions.length)} of ${filteredTransactions.length}`;
+
     document.getElementById('prev-page').disabled = Dashboard.currentPage === 1;
-    document.getElementById('next-page').disabled = Dashboard.currentPage === totalPages;
+    document.getElementById('next-page').disabled = Dashboard.currentPage === totalPages || filteredTransactions.length === 0;
     
     renderPageNumbers(totalPages);
 }
@@ -466,6 +674,10 @@ function renderTable() {
 function renderPageNumbers(totalPages) {
     const container = document.getElementById('page-numbers');
     container.innerHTML = '';
+
+    if (totalPages === 0) {
+        return;
+    }
     
     for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement('button');
@@ -480,20 +692,62 @@ function renderPageNumbers(totalPages) {
 }
 
 function filterTransactions(query) {
-    const filtered = generateTransactions(50).filter(trx =>
-        trx.customer.toLowerCase().includes(query.toLowerCase()) ||
-        trx.product.toLowerCase().includes(query.toLowerCase()) ||
-        trx.id.toLowerCase().includes(query.toLowerCase())
-    );
-    Dashboard.transactions = filtered;
+    Dashboard.searchQuery = query;
     Dashboard.currentPage = 1;
     renderTable();
+}
+
+function handleTransactionSubmit(event) {
+    event.preventDefault();
+
+    const customer = document.getElementById('transaction-customer').value.trim();
+    const product = document.getElementById('transaction-product').value.trim();
+    const amount = Number(document.getElementById('transaction-amount').value);
+    const status = document.getElementById('transaction-status').value;
+    const date = document.getElementById('transaction-date').value;
+
+    if (!customer || !product || !date || Number.isNaN(amount)) {
+        showNotification('Fill out every field before saving.', 'error');
+        return;
+    }
+
+    addOrUpdateTransaction({
+        customer,
+        product,
+        amount,
+        status,
+        date
+    });
+}
+
+function handleTableActionClick(event) {
+    const button = event.target.closest('button[data-action]');
+    if (!button) {
+        return;
+    }
+
+    const { action, id } = button.dataset;
+
+    if (action === 'edit') {
+        const transaction = Dashboard.transactions.find((item) => item.id === id);
+        if (transaction) {
+            populateTransactionForm(transaction);
+            document.getElementById('transaction-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    if (action === 'delete') {
+        deleteTransaction(id);
+    }
 }
 
 // ============================================
 // Event Handlers
 // ============================================
 function setupEventListeners() {
+    document.getElementById('transaction-form').addEventListener('submit', handleTransactionSubmit);
+    document.getElementById('transaction-cancel').addEventListener('click', clearTransactionForm);
+
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     
@@ -521,6 +775,9 @@ function setupEventListeners() {
     document.getElementById('table-search').addEventListener('input', (e) => {
         filterTransactions(e.target.value);
     });
+
+    // Table actions
+    document.getElementById('transactions-body').addEventListener('click', handleTableActionClick);
     
     // Table rows selector
     document.getElementById('table-rows').addEventListener('change', (e) => {
@@ -586,20 +843,15 @@ function refreshAllData() {
     const btn = document.getElementById('refresh-data');
     btn.textContent = '🔄 Refreshing...';
     btn.disabled = true;
-    
-    // Animate KPI numbers
-    animateKPIs();
-    
-    // Regenerate all chart data
+
     setTimeout(() => {
-        updateRevenueChart(30);
+        updateDashboardSummary();
+        updateRevenueChart(parseInt(document.getElementById('revenue-period').value, 10));
         updateCategoryChart();
         updateTrafficChart();
         updateUserGrowthChart('all');
         updateRadarChart();
         updateComparisonChart();
-        
-        Dashboard.transactions = generateTransactions(50);
         renderTable();
         
         btn.textContent = '🔄 Refresh';
@@ -633,8 +885,7 @@ function animateKPIs() {
 }
 
 function updateRevenueChart(days) {
-    const labels = generateDates(days);
-    const data = randomData(days, 3000, 8000);
+    const { labels, data } = getRevenueSeries(days);
     Dashboard.revenueData = { labels, data };
     
     Dashboard.charts.revenue.data.labels = labels;
@@ -725,7 +976,7 @@ function showNotification(message, type = 'info') {
         top: 20px;
         right: 20px;
         padding: 14px 24px;
-        background: ${type === 'success' ? '#51cf66' : '#4c6ef5'};
+        background: ${type === 'success' ? '#51cf66' : type === 'error' ? '#ff6b6b' : '#4c6ef5'};
         color: white;
         border-radius: 8px;
         font-weight: 500;
@@ -767,7 +1018,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initComparisonChart();
     
     // Initialize table data
-    Dashboard.transactions = generateTransactions(50);
+    Dashboard.transactions = loadTransactions();
+    updateDashboardSummary();
+    clearTransactionForm();
+    updateRevenueChart(parseInt(document.getElementById('revenue-period').value, 10));
     renderTable();
     
     // Setup interactions

@@ -138,6 +138,52 @@
             </div>
         </section>
 
+        <!-- Transaction Manager -->
+        <section class="transaction-section">
+            <div class="transaction-card">
+                <div class="chart-header transaction-header">
+                    <div>
+                        <h2>✍️ Manage Transactions</h2>
+                        <p class="section-description">Add customer purchases, edit mistakes, or remove old rows. Everything is saved in your browser.</p>
+                    </div>
+                    <button id="transaction-cancel" type="button" class="btn btn-secondary" style="display:none;">Cancel Edit</button>
+                </div>
+                <form id="transaction-form" class="transaction-form">
+                    <input type="hidden" id="transaction-id">
+                    <div class="form-grid">
+                        <label class="form-field">
+                            <span>Customer</span>
+                            <input type="text" id="transaction-customer" placeholder="e.g. Alex Turner" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Product</span>
+                            <input type="text" id="transaction-product" placeholder="e.g. Premium Plan" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Amount</span>
+                            <input type="number" id="transaction-amount" placeholder="1250" min="0" step="1" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Status</span>
+                            <select id="transaction-status" required>
+                                <option value="Completed">Completed</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Failed">Failed</option>
+                            </select>
+                        </label>
+                        <label class="form-field">
+                            <span>Date</span>
+                            <input type="date" id="transaction-date" required>
+                        </label>
+                    </div>
+                    <div class="transaction-form-actions">
+                        <button id="transaction-submit" type="submit" class="btn btn-primary">Add Transaction</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
         <!-- Data Table -->
         <section class="table-section">
             <div class="table-card">
@@ -162,6 +208,7 @@
                                 <th>Amount</th>
                                 <th>Status</th>
                                 <th>Date</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="transactions-body">
